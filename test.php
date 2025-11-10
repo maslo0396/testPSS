@@ -181,7 +181,7 @@
 
             // Показываем изображение, если есть
             $image_path = getImagePath($question['img']);
-            if (!empty($image_path)) {
+            if (!empty($image_path) && file_exists($image_path)) {
                 echo '<div class="question-image">';
                 echo '<img src="' . $image_path . '" alt="Иллюстрация к вопросу">';
                 echo '</div>';
@@ -194,7 +194,6 @@
             foreach ($question['options'] as $option_index => $option) {
                 $is_correct = ($option_index === $correct_answer);
                 $is_user_answer = ($option_index === $user_answer);
-                $is_skipped = ($question_results[$index] === 'skipped');
 
                 $option_class = '';
                 $icon = '';
@@ -204,10 +203,12 @@
                     // Пользователь ответил правильно
                     $option_class = 'correct-user-answer';
                     $icon = '✅';
+                    $label = '<span class="answer-label correct-label">Ваш ответ - ПРАВИЛЬНО</span>';
                 } elseif ($is_correct) {
                     // Правильный ответ (но пользователь не выбрал его)
-                    $option_class = 'correct-answer';
-                    $icon = '✅';                
+                    $option_class = 'correct-answer-option';
+                    $icon = '✅';
+                    $label = '<span class="answer-label correct-label">Правильный ответ</span>';
                 } elseif ($is_user_answer) {
                     // Пользователь ответил неправильно
                     $option_class = 'incorrect-user-answer';
@@ -221,7 +222,7 @@
 
                 echo '<div class="option result-option ' . $option_class . '">';
                 echo '<span class="option-icon">' . $icon . '</span>';
-                echo '<span class="option-text">' . $option . '</span>';
+                echo '<span class="option-text">' . htmlspecialchars($option) . '</span>';
                 echo $label;
                 echo '</div>';
             }
@@ -231,7 +232,7 @@
             echo '<div class="question-info">';
             if ($question_results[$index] === 'skipped') {
                 echo '<p class="skipped-info">❓ Вы пропустили этот вопрос</p>';
-            } elseif ($question_results[$index] === 'incorrect') {
+            } elseif ($question_results[$index] === 'incorrect' && $user_answers[$index] !== null) {
                 echo '<p class="incorrect-info">Вы выбрали неправильный вариант</p>';
             }
             echo '</div>';
@@ -243,13 +244,15 @@
         unset($_SESSION[$session_key]);
 
         // Кнопка "Пройти тест снова" с учетом файла
+        echo '<div class="navigation">';
         if ($file_param === 'ohrana_truda') {
-            echo '<br><button class="btn__replace" onclick="window.location.href=\'test.php?category=' . urlencode($selected_category) . '&file=ohrana_truda\'">Пройти тест снова</button>';
+            echo '<button class="btn__replace" onclick="window.location.href=\'test.php?category=' . urlencode($selected_category) . '&file=ohrana_truda\'">Пройти тест снова</button>';
         } else {
-            echo '<br><button class="btn__replace" onclick="window.location.href=\'test.php?category=' . urlencode($selected_category) . '\'">Пройти тест снова</button>';
+            echo '<button class="btn__replace" onclick="window.location.href=\'test.php?category=' . urlencode($selected_category) . '\'">Пройти тест снова</button>';
         }
         echo ' ';
         echo '<button class="back-button" onclick="window.location.href=\'index.html\'">Назад к выбору категории</button>';
+        echo '</div>';
         echo '</div>';
     } else {
         // Перемешиваем вопросы в случайном порядке только при первой загрузке
@@ -285,11 +288,11 @@
                 $is_active = $index === 0 ? 'active' : '';
                 echo '<div class="question ' . $is_active . '" id="question_' . $index . '">';
                 echo '<div class="question-counter">Вопрос ' . ($index + 1) . ' из ' . count($test_questions) . '</div>';
-                echo '<p>' . $question['question'] . '</p>';
+                echo '<p>' . htmlspecialchars($question['question']) . '</p>';
 
                 // Показываем изображение, если есть
                 $image_path = getImagePath($question['img']);
-                if (!empty($image_path)) {
+                if (!empty($image_path) && file_exists($image_path)) {
                     echo '<div class="question-image">';
                     echo '<img src="' . $image_path . '" alt="Иллюстрация к вопросу">';
                     echo '</div>';
@@ -303,7 +306,7 @@
                     echo '<input type="radio" id="q' . $index . '_o' . $option_index . '" 
                                 name="question_' . $index . '" value="' . $option_index . '" 
                                 data-correct="' . $is_correct . '">';
-                    echo '<label for="q' . $index . '_o' . $option_index . '">' . $option . '</label>';
+                    echo '<label for="q' . $index . '_o' . $option_index . '">' . htmlspecialchars($option) . '</label>';
                     echo '</div>';
                 }
 

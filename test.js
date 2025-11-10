@@ -60,7 +60,44 @@ document.addEventListener('DOMContentLoaded', function() {
         return Array.from(inputs).some(input => input.checked);
     }
 
+    // Обрабатываем ответ на вопрос (общая функция)
+    function processAnswer(questionIndex) {
+        // Проверяем, выбран ли ответ на текущем вопросе
+        const isAnswered = isQuestionAnswered(questionIndex);
+        
+        if (!isAnswered) {
+            return { processed: false, message: 'Пожалуйста, выберите ответ.' };
+        }
+        
+        // Получаем выбранный ответ и проверяем его
+        const inputs = document.querySelectorAll('#question_' + questionIndex + ' input[type="radio"]:checked');
+        if (inputs.length > 0) {
+            const selectedValue = inputs[0].value;
+            const isCorrect = checkAnswer(questionIndex, selectedValue);
+            
+            // Показываем фидбек
+            showFeedback(questionIndex, isCorrect);
+            
+            // Сохраняем результат в скрытое поле
+            saveResult(questionIndex, isCorrect ? 'correct' : 'incorrect');
+            
+            // Обновляем точку прогресса
+            updateProgressDot(questionIndex, isCorrect ? 'correct' : 'incorrect');
+            
+            // Отключаем все радио-кнопки текущего вопроса
+            document.querySelectorAll('#question_' + questionIndex + ' input[type="radio"]').forEach(radio => {
+                radio.disabled = true;
+            });
+            
+            return { processed: true };
+        }
+        return { processed: false, message: 'Не удалось обработать ответ.' };
+    }
+
     function showQuestion(index) {
+        // Проверяем, что вопросы существуют
+        if (questions.length === 0) return;
+        
         questions.forEach((question, i) => {
             question.classList.remove('active');
             if (i === index) {
@@ -70,9 +107,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Обновляем точки прогресса
         progressDots.forEach((dot, i) => {
-            dot.classList.remove('current');
-            if (i === index) {
-                dot.classList.add('current');
+            if (dot) {
+                dot.classList.remove('current');
+                if (i === index) {
+                    dot.classList.add('current');
+                }
             }
         });
         
@@ -81,7 +120,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Обновляем состояние кнопок
-        if (index === totalQuestions - 1) {
+        const totalQuestions = questions.length;
+        const isLastQuestion = index === totalQuestions - 1;
+        
+        if (isLastQuestion) {
             if (nextButton) nextButton.style.display = 'none';
             if (skipButton) skipButton.style.display = 'none';
             if (submitContainer) submitContainer.style.display = 'block';
@@ -90,20 +132,31 @@ document.addEventListener('DOMContentLoaded', function() {
             if (skipButton) skipButton.style.display = 'inline-block';
             if (submitContainer) submitContainer.style.display = 'none';
         }
+        
+        // Включаем кнопки при переходе на новый вопрос
+        if (nextButton) nextButton.disabled = false;
+        if (skipButton) skipButton.disabled = false;
     }
 
     // Обработчик клика по варианту ответа
     function setupOptionClickHandlers() {
         document.querySelectorAll('.option').forEach(option => {
             option.addEventListener('click', function(e) {
-                // Находим радио-кнопку внутри этого варианта
-                const radio = this.querySelector('input[type="radio"]');
-                if (radio && !radio.disabled) {
-                    radio.checked = true;
-                    
-                    // Триггерим событие change для обновления UI
-                    const event = new Event('change', { bubbles: true });
-                    radio.dispatchEvent(event);
+                // Проверяем, не отключен ли уже вопрос
+                const questionIndex = Array.from(questions).findIndex(q => q.contains(this));
+                const inputs = document.querySelectorAll('#question_' + questionIndex + ' input[type="radio"]');
+                const isDisabled = inputs[0] && inputs[0].disabled;
+                
+                if (!isDisabled) {
+                    // Находим радио-кнопку внутри этого варианта
+                    const radio = this.querySelector('input[type="radio"]');
+                    if (radio) {
+                        radio.checked = true;
+                        
+                        // Триггерим событие change для обновления UI
+                        const event = new Event('change', { bubbles: true });
+                        radio.dispatchEvent(event);
+                    }
                 }
             });
         });
@@ -111,61 +164,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (nextButton) {
         nextButton.addEventListener('click', function() {
-            // Проверяем, выбран ли ответ на текущем вопросе
-            const isAnswered = isQuestionAnswered(currentQuestion);
+            // Обрабатываем ответ на текущий вопрос
+            const result = processAnswer(currentQuestion);
             
-            if (!isAnswered) {
-                alert('Пожалуйста, выберите ответ перед переходом к следующему вопросу.');
-                return;
-            }
-            
-            // Получаем выбранный ответ и проверяем его
-            const inputs = document.querySelectorAll('#question_' + currentQuestion + ' input[type="radio"]:checked');
-            if (inputs.length > 0) {
-                const selectedValue = inputs[0].value;
-                const isCorrect = checkAnswer(currentQuestion, selectedValue);
-                
-                // Показываем фидбек
-                showFeedback(currentQuestion, isCorrect);
-                
-                // Сохраняем результат в скрытое поле
-                saveResult(currentQuestion, isCorrect ? 'correct' : 'incorrect');
-                
-                // Обновляем точку прогресса
-                updateProgressDot(currentQuestion, isCorrect ? 'correct' : 'incorrect');
-                
+            if (result.processed) {
                 // Отключаем кнопки на время показа фидбека
                 nextButton.disabled = true;
                 if (skipButton) skipButton.disabled = true;
                 
-                // Отключаем все радио-кнопки текущего вопроса
-                document.querySelectorAll('#question_' + currentQuestion + ' input[type="radio"]').forEach(radio => {
-                    radio.disabled = true;
-                });
+                // Автоматический переход к следующему вопросу через 1.5 секунды
+                setTimeout(() => {
+                    if (currentQuestion < questions.length - 1) {
+                        currentQuestion++;
+                        showQuestion(currentQuestion);
+                    }
+                }, 1500);
+            } else {
+                alert(result.message);
             }
-            
-            // Автоматический переход к следующему вопросу через 1.5 секунды
-            setTimeout(() => {
-                if (currentQuestion < totalQuestions - 1) {
-                    currentQuestion++;
-                    showQuestion(currentQuestion);
-                    // Включаем кнопки обратно
-                    nextButton.disabled = false;
-                    if (skipButton) skipButton.disabled = false;
-                }
-            }, 1500);
         });
     }
 
     if (skipButton) {
         skipButton.addEventListener('click', function() {
-            // Помечаем вопрос как пропущенный
-            updateProgressDot(currentQuestion, 'skipped');
+            // Сохраняем результат как пропущенный
             saveResult(currentQuestion, 'skipped');
             
-            if (currentQuestion < totalQuestions - 1) {
+            // Помечаем вопрос как пропущенный
+            updateProgressDot(currentQuestion, 'skipped');
+            
+            if (currentQuestion < questions.length - 1) {
                 currentQuestion++;
                 showQuestion(currentQuestion);
+            } else {
+                // Если это последний вопрос, показываем кнопку завершения
+                if (nextButton) nextButton.style.display = 'none';
+                if (skipButton) skipButton.style.display = 'none';
+                if (submitContainer) submitContainer.style.display = 'block';
             }
         });
     }
@@ -174,6 +209,7 @@ document.addEventListener('DOMContentLoaded', function() {
     progressDots.forEach(dot => {
         dot.addEventListener('click', function() {
             const questionIndex = parseInt(this.getAttribute('data-question'));
+            
             // Проверяем, можно ли перейти к этому вопросу
             if (questionIndex <= currentQuestion) {
                 currentQuestion = questionIndex;
@@ -184,9 +220,51 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Обработчик для кнопки завершения теста
+    const submitButton = document.querySelector('button[type="submit"]');
+    if (submitButton) {
+        submitButton.addEventListener('click', function(e) {
+            // Проверяем, все ли вопросы отвечены или пропущены
+            let allProcessed = true;
+            let unprocessedQuestions = [];
+            const totalQuestions = questions.length;
+            
+            for (let i = 0; i < totalQuestions; i++) {
+                const resultField = document.getElementById('result_' + i);
+                if (!resultField || resultField.value === '') {
+                    // Если вопрос не обработан, но на него есть ответ - обрабатываем его
+                    if (isQuestionAnswered(i)) {
+                        const result = processAnswer(i);
+                        if (!result.processed) {
+                            allProcessed = false;
+                            unprocessedQuestions.push(i + 1);
+                        }
+                    } else {
+                        allProcessed = false;
+                        unprocessedQuestions.push(i + 1);
+                    }
+                }
+            }
+            
+            if (!allProcessed) {
+                e.preventDefault();
+                if (unprocessedQuestions.length > 0) {
+                    alert('Пожалуйста, ответьте на вопросы: ' + unprocessedQuestions.join(', ') + ' или пропустите их перед завершением теста.');
+                } else {
+                    alert('Пожалуйста, ответьте на все вопросы или пропустите их перед завершением теста.');
+                }
+            }
+        });
+    }
+
     // Настройка обработчиков клика по вариантам ответов
     setupOptionClickHandlers();
 
-    // Инициализация
-    showQuestion(0);
+    // Проверяем, что есть вопросы для теста
+    if (questions.length > 0) {
+        // Инициализация
+        showQuestion(0);
+    } else {
+        console.error('Вопросы для теста не найдены');
+    }
 });

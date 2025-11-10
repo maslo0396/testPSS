@@ -20,8 +20,8 @@ h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight: inherit;}
 /* ------------------ */
 :root{
     --f-f-roboto: "Roboto", sans-serif;
-    --color-btn: #007bff;
-    --color-btn-h: #0056b3;
+    --color-btn: #3498db;
+    --color-btn-h: #2980b9;
     --transition-duration: 0.3s ;
 }
 
