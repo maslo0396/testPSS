@@ -4,24 +4,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="index.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="test.css?v=<?php echo time(); ?>">
     <title>Тест</title>
 </head>
 
 <body>
-    <div class="header">
-        <h1>Тест</h1>
-        <?php
-        $selected_category = isset($_GET['category']) ? $_GET['category'] : 'Все категории';
-        echo '<p><strong>Категория:</strong> ' . htmlspecialchars($selected_category) . '</p>';
-        ?>
-        <button class="back-button" onclick="window.location.href='index.html'">← Назад к выбору категории</button>
-    </div>
+    <header class="header">
+        <div class="container">
+            <h1 class="header__title">Тест</h1>
+            <?php
+            $selected_category = isset($_GET['category']) ? $_GET['category'] : 'Все категории';
+            echo '<p><strong>Категория:</strong> ' . htmlspecialchars($selected_category) . '</p>';
+            ?>
+            <button class="back-button" onclick="window.location.href='index.html'">← Назад к выбору категории</button>
+        </div>
+    </header>
 
     <?php
     // Получаем параметр файла из GET запроса (по умолчанию основной файл)
     $file_param = isset($_GET['file']) ? $_GET['file'] : 'questions';
-    
+
     // Определяем путь к JSON файлу и настройки теста
     if ($file_param === 'ohrana_truda') {
         $json_file_path = 'ohrana_truda.json';
@@ -79,7 +82,7 @@
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
-    
+
     // Генерируем уникальный ключ для этой категории теста (учитываем и файл)
     $session_key = 'test_questions_' . md5($selected_category . '_' . $file_param);
 
@@ -102,7 +105,7 @@
         foreach ($test_questions as $index => $question) {
             $question_name = 'question_' . $index;
             $result_name = 'result_' . $index;
-            
+
             // Получаем ответ пользователя (если есть)
             if (isset($_POST[$question_name]) && $_POST[$question_name] !== '') {
                 $user_answer = (int)$_POST[$question_name];
@@ -110,7 +113,7 @@
             } else {
                 $user_answers[$index] = null;
             }
-            
+
             // Получаем результат из скрытого поля
             if (isset($_POST[$result_name]) && $_POST[$result_name] !== '') {
                 $result = $_POST[$result_name];
@@ -175,7 +178,7 @@
         foreach ($test_questions as $index => $question) {
             $result_class = $question_results[$index] === 'correct' ? 'correct' : ($question_results[$index] === 'skipped' ? 'skipped' : 'incorrect');
             $status_text = $question_results[$index] === 'correct' ? 'Правильно' : ($question_results[$index] === 'skipped' ? 'Пропущено' : 'Неправильно');
-            
+
             echo '<div class="question result-question" style="display: block;">';
             echo '<p><strong>Вопрос ' . ($index + 1) . ':</strong> ' . $question['question'] . ' <span class="' . $result_class . '-answer">(' . $status_text . ')</span></p>';
 
@@ -198,7 +201,7 @@
                 $option_class = '';
                 $icon = '';
                 $label = '';
-                
+
                 if ($is_correct && $is_user_answer) {
                     // Пользователь ответил правильно
                     $option_class = 'correct-user-answer';
@@ -227,7 +230,7 @@
                 echo '</div>';
             }
             echo '</div>';
-            
+
             // Дополнительная информация о вопросе
             echo '<div class="question-info">';
             if ($question_results[$index] === 'skipped') {
@@ -236,7 +239,7 @@
                 echo '<p class="incorrect-info">Вы выбрали неправильный вариант</p>';
             }
             echo '</div>';
-            
+
             echo '</div>';
         }
 
@@ -273,9 +276,9 @@
             }
 
             echo '<form method="POST" action="' . $form_action . '" id="testForm">';
-            
+
             echo '<div class="progress">Прогресс: <span id="currentQuestion">1</span> / ' . count($test_questions) . '</div>';
-            
+
             // Визуальный прогресс в виде точек
             echo '<div class="progress-dots" id="progressDots">';
             for ($i = 0; $i < count($test_questions); $i++) {
@@ -311,13 +314,13 @@
                 }
 
                 echo '</div>';
-                
+
                 // Блок для отображения фидбека
                 echo '<div class="feedback" id="feedback_' . $index . '" style="display: none;"></div>';
-                
+
                 // Скрытое поле для сохранения результата проверки
                 echo '<input type="hidden" name="result_' . $index . '" id="result_' . $index . '" value="">';
-                
+
                 echo '</div>';
             }
 
@@ -342,7 +345,7 @@
             echo '<script>';
             echo 'const totalQuestions = ' . count($test_questions) . ';';
             echo '</script>';
-            
+
             // Подключаем внешние файлы
             echo '<script src="test.js?v=' . time() . '"></script>';
         } else {
